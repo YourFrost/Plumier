@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStore } from "../store";
 import { STATUSES, type Status } from "../types";
 import { find, findParent, totalWords } from "../tree";
+import { LabelChips } from "./Labels";
 
 export function Corkboard() {
   const { project, section, selectedId, select, setView, addNode, moveNode, updateNode } = useStore();
@@ -11,6 +12,7 @@ export function Corkboard() {
     if (!st.project || !st.selectedId) return null;
     return findParent(st.project[st.section], st.selectedId)?.id ?? null;
   });
+  const [filter, setFilter] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   if (!project) return null;
@@ -18,7 +20,8 @@ export function Corkboard() {
   const roots = project[section];
   const scope = scopeId ? find(roots, scopeId) : null;
   const effectiveScope = scope && scope.kind === "folder" ? scope : null;
-  const cards = effectiveScope ? effectiveScope.children : roots;
+  const all = effectiveScope ? effectiveScope.children : roots;
+  const cards = filter ? all.filter((n) => n.labels.includes(filter)) : all;
 
   // fil d'Ariane
   const crumbs: { id: string | null; title: string }[] = [{ id: null, title: section === "manuscript" ? "Manuscrit" : "Fiches" }];
@@ -50,6 +53,10 @@ export function Corkboard() {
           ))}
         </div>
         <div className="spacer" />
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} title="Filtrer par étiquette">
+          <option value="">Toutes les étiquettes</option>
+          {project.labels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
         <button onClick={() => addNode("doc", effectiveScope?.id ?? null)}>＋ {section === "manuscript" ? "Scène" : "Fiche"}</button>
         <button onClick={() => addNode("folder", effectiveScope?.id ?? null)}>＋ Dossier</button>
       </div>
@@ -62,7 +69,7 @@ export function Corkboard() {
               key={n.id}
               className={`card ${n.kind} ${selectedId === n.id ? "selected" : ""} ${overId === n.id ? "over" : ""} ${dragId === n.id ? "dragging" : ""}`}
               style={{ borderTopColor: st.color }}
-              draggable
+              draggable={!filter}
               onDragStart={() => setDragId(n.id)}
               onDragEnd={() => { setDragId(null); setOverId(null); }}
               onDragOver={(e) => { if (dragId && dragId !== n.id) { e.preventDefault(); setOverId(n.id); } }}
@@ -83,6 +90,7 @@ export function Corkboard() {
                 onChange={(e) => updateNode(n.id, { synopsis: e.target.value })}
                 onClick={(e) => e.stopPropagation()}
               />
+              <LabelChips ids={n.labels} />
               <div className="card-foot">
                 <select value={n.status} onChange={(e) => updateNode(n.id, { status: e.target.value as Status })} onClick={(e) => e.stopPropagation()}>
                   {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -92,7 +100,7 @@ export function Corkboard() {
             </div>
           );
         })}
-        {cards.length > 0 && (
+        {cards.length > 0 && !filter && (
           <div
             className={`card-end ${overId === "__end" ? "over" : ""}`}
             onDragOver={(e) => { if (dragId) { e.preventDefault(); setOverId("__end"); } }}

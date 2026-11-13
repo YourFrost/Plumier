@@ -3,7 +3,7 @@ import type { Project, Section, Status, TreeNode } from "./types";
 import { storage, defaultProject, pushRecent, dropRecent } from "./storage";
 import { find, findParent, flatten, insert, isDescendant, mapNodes, newNode, remove, sectionOf, today } from "./tree";
 
-export type View = "editor" | "corkboard" | "outline";
+export type View = "editor" | "corkboard" | "outline" | "timeline" | "stats";
 
 interface State {
   dir: string | null;
@@ -28,10 +28,11 @@ interface State {
   closeProject: () => void;
 
   addNode: (kind: TreeNode["kind"], parentId: string | null, section?: Section) => string | undefined;
-  updateNode: (id: string, patch: Partial<Pick<TreeNode, "title" | "synopsis" | "status">>) => void;
+  updateNode: (id: string, patch: Partial<Pick<TreeNode, "title" | "synopsis" | "status" | "aliases" | "labels" | "date" | "moment">>) => void;
   deleteNode: (id: string) => Promise<void>;
   moveNode: (id: string, parentId: string | null, index: number) => void;
-  updateProject: (patch: Partial<Pick<Project, "title" | "author" | "goals">>) => void;
+  updateProject: (patch: Partial<Pick<Project, "title" | "author" | "goals" | "labels" | "dictionary">>) => void;
+  deleteLabel: (id: string) => void;
   /** Appelé par l'éditeur à chaque sauvegarde de scène */
   recordWords: (id: string, words: number) => void;
 }
@@ -176,6 +177,14 @@ export const useStore = create<State>((set, get) => {
     },
 
     updateProject: (patch) => commit((p) => ({ ...p, ...patch })),
+
+    deleteLabel: (id) =>
+      commit((p) => ({
+        ...p,
+        labels: p.labels.filter((l) => l.id !== id),
+        manuscript: mapNodes(p.manuscript, (n) => ({ ...n, labels: n.labels.filter((l) => l !== id) })),
+        notes: mapNodes(p.notes, (n) => ({ ...n, labels: n.labels.filter((l) => l !== id) })),
+      })),
 
     recordWords(id, words) {
       commit((p) => {

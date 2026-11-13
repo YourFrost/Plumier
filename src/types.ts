@@ -18,6 +18,19 @@ export interface TreeNode {
   status: Status;
   words: number;
   children: TreeNode[];
+  /** Autres noms par lesquels on désigne l'élément (fiches) : surnoms, titres… */
+  aliases: string[];
+  /** Identifiants d'étiquettes */
+  labels: string[];
+  /** Date dans l'histoire (AAAA-MM-JJ) et moment libre (« matin », « Jour 3 »…) */
+  date: string;
+  moment: string;
+}
+
+export interface Label {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export interface Project {
@@ -26,7 +39,10 @@ export interface Project {
   author: string;
   manuscript: TreeNode[];
   notes: TreeNode[];
-  goals: { total: number; daily: number };
+  goals: { total: number; daily: number; deadline: string };
+  labels: Label[];
+  /** Mots acceptés par le correcteur */
+  dictionary: string[];
   /** mots écrits par jour (clé AAAA-MM-JJ) */
   daily: Record<string, number>;
 }

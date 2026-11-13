@@ -4,6 +4,8 @@ import { Binder } from "./components/Binder";
 import { Editor } from "./components/Editor";
 import { Corkboard } from "./components/Corkboard";
 import { Outline } from "./components/Outline";
+import { Timeline } from "./components/Timeline";
+import { Stats } from "./components/Stats";
 import { Inspector } from "./components/Inspector";
 import { Welcome } from "./components/Welcome";
 import { ExportDialog } from "./components/ExportDialog";
@@ -14,6 +16,8 @@ const VIEWS: { v: View; label: string }[] = [
   { v: "editor", label: "✍ Écriture" },
   { v: "corkboard", label: "🗂 Tableau" },
   { v: "outline", label: "☰ Plan" },
+  { v: "timeline", label: "⏱ Chronologie" },
+  { v: "stats", label: "📊 Stats" },
 ];
 
 export function App() {
@@ -70,6 +74,8 @@ export function App() {
           {view === "editor" && <Editor />}
           {view === "corkboard" && <Corkboard />}
           {view === "outline" && <Outline />}
+          {view === "timeline" && <Timeline />}
+          {view === "stats" && <Stats />}
         </main>
         {!focus && <Inspector />}
       </div>

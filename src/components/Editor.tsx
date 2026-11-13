@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor as TipTapEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -6,6 +6,8 @@ import CharacterCount from "@tiptap/extension-character-count";
 import { Markdown } from "tiptap-markdown";
 import { useStore, selectedNode } from "../store";
 import { storage } from "../storage";
+import { FrenchTypography, setTypoEnabled, typoEnabled } from "../frenchTypo";
+import { ProofPanel } from "./ProofPanel";
 
 /* Permet à d'autres composants (instantanés, export, recherche) de forcer l'écriture en cours. */
 let flushNow: () => Promise<void> = async () => {};
@@ -24,12 +26,15 @@ export function Editor() {
   const loaded = useRef<string | null>(null); // id du document actuellement dans l'éditeur
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const dirty = useRef(false);
+  const [proof, setProof] = useState(false);
+  const [typo, setTypo] = useState(typoEnabled());
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder: "Il était une fois…" }),
       CharacterCount,
+      FrenchTypography,
       Markdown.configure({ html: false, transformPastedText: true, breaks: false }),
     ],
     editorProps: { attributes: { spellcheck: "true", lang: "fr" } },
@@ -147,10 +152,14 @@ export function Editor() {
           {btn("1.", "Liste numérotée", editor.isActive("orderedList"), () => c().toggleOrderedList().run())}
           {btn("＊＊＊", "Séparateur de scène", false, () => c().setHorizontalRule().run())}
           <span className="sep" />
+          {btn(typo ? "FR ✓" : "FR", "Typographie française automatique (guillemets, espaces insécables…)", typo, () => { setTypoEnabled(!typo); setTypo(!typo); })}
+          {btn("✓ Correction", "Grammaire et orthographe (LanguageTool)", proof, () => setProof(!proof))}
+          <span className="sep" />
           {btn("↶", "Annuler (Ctrl+Z)", false, () => c().undo().run())}
           {btn("↷", "Rétablir (Ctrl+Y)", false, () => c().redo().run())}
         </div>
       )}
+      <div className="editor-row">
       <div className="page-scroll">
         <div className="page">
           <input
@@ -161,6 +170,8 @@ export function Editor() {
           />
           <EditorContent editor={editor} />
         </div>
+      </div>
+      {proof && editor && <ProofPanel editor={editor} onClose={() => setProof(false)} />}
       </div>
     </div>
   );

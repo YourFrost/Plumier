@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStore } from "../store";
 import { STATUSES, type TreeNode } from "../types";
 import { find, findParent, sectionWords, totalWords } from "../tree";
+import { LabelDots } from "./Labels";
 
 type Drop = { id: string; pos: "before" | "after" | "inside" } | null;
 
@@ -105,6 +106,7 @@ export function Binder() {
           ) : (
             <span className="title">{n.title}</span>
           )}
+          <LabelDots ids={n.labels} />
           {n.kind === "doc" && section === "manuscript" && <span className="dot" title={status.label} style={{ background: status.color }} />}
           <span className="count">{n.kind === "folder" ? totalWords(n) || "" : n.words || ""}</span>
           <span className="actions" onClick={(e) => e.stopPropagation()}>

@@ -6,7 +6,12 @@ Logiciel d'écriture et de planification de romans, pour Windows. Local, gratuit
 - **Classeur** en arbre (dossiers / scènes), glisser-déposer, renommage.
 - **Éditeur** riche (gras, italique, titres, citations, listes, séparateur de scène), sauvegarde automatique, mode Focus (F11).
 - **Planification** : tableau de liège (cartes + résumé + statut), plan en tableau, onglet **Fiches** (personnages, lieux, univers…).
-- **Objectifs** de mots (jour / livre), compteurs par scène et par dossier.
+- **Liens fiches ↔ scènes** détectés automatiquement (nom + alias) : « Apparaît dans » sur une fiche, « Présents dans la scène » sur une scène.
+- **Chronologie** : date et moment de chaque scène, vue en ordre chronologique ou en ordre du livre (retours en arrière signalés).
+- **Étiquettes colorées** (personnalisables) sur scènes et fiches, filtres dans le tableau et la chronologie.
+- **Statistiques** : mots par jour (30 jours), série, moyenne, avancement par statut, mots par partie, projection vers la date limite.
+- **Correction** : typographie française à la frappe (« », espaces insécables, …, ’) + grammaire/orthographe via [LanguageTool](https://languagetool.org) (serveur local conseillé : `java -cp languagetool-server.jar org.languagetool.server.HTTPServer --port 8081 --allow-origin "*"`), dictionnaire personnel par projet.
+- **Objectifs** de mots (jour / livre / date limite), compteurs par scène et par dossier.
 - **Instantanés** (versions) par scène, avec restauration.
 - **Recherche** dans tout le projet (Ctrl+Maj+F).
 - **Export** DOCX, EPUB, ODT, HTML, Markdown (via [Pandoc](https://pandoc.org/installing.html), à installer séparément).

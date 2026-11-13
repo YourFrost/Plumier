@@ -3,7 +3,7 @@ import { join } from "@tauri-apps/api/path";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import type { Project, SnapshotInfo } from "./types";
-import { newNode } from "./tree";
+import { DEFAULT_LABELS, newNode, normalizeProject } from "./tree";
 
 /**
  * Format d'un projet sur disque :
@@ -26,7 +26,9 @@ export function defaultProject(title: string, author = ""): Project {
     author,
     manuscript: [chapter],
     notes: ["Personnages", "Lieux", "Univers", "Recherches"].map((t) => newNode("folder", t)),
-    goals: { total: 80000, daily: 500 },
+    goals: { total: 80000, daily: 500, deadline: "" },
+    labels: DEFAULT_LABELS,
+    dictionary: [],
     daily: {},
   };
 }
@@ -75,7 +77,7 @@ const desktop: StorageApi = {
   async load(dir) {
     const file = await join(dir, "plumier.json");
     if (!(await exists(file))) throw new Error("Ce dossier ne contient pas de projet Plumier.");
-    return JSON.parse(await readTextFile(file));
+    return normalizeProject(JSON.parse(await readTextFile(file)));
   },
   async saveMeta(dir, p) {
     const file = await join(dir, "plumier.json");
@@ -166,7 +168,7 @@ const web: StorageApi = {
   async load(dir) {
     const raw = ls.get("meta:" + dir);
     if (!raw) throw new Error("Projet introuvable.");
-    return JSON.parse(raw);
+    return normalizeProject(JSON.parse(raw));
   },
   saveMeta: async (dir, p) => ls.set("meta:" + dir, JSON.stringify(p)),
   readDoc: async (dir, id) => ls.get(`doc:${dir}:${id}`) ?? "",

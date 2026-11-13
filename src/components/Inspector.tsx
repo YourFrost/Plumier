@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useStore, selectedNode } from "../store";
 import { storage } from "../storage";
-import { STATUSES, type SnapshotInfo, type Status } from "../types";
+import { STATUSES, type SnapshotInfo, type Status, type TreeNode } from "../types";
 import { flushEditor, RELOAD_EVENT } from "./Editor";
-import { sectionWords, today } from "../tree";
+import { flatten, sectionWords, today } from "../tree";
+import { countMentions, namesOf } from "../mentions";
+import { LabelPicker } from "./Labels";
 
 export function Inspector() {
   const node = useStore(selectedNode);
@@ -11,6 +13,7 @@ export function Inspector() {
   const [snaps, setSnaps] = useState<SnapshotInfo[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [preview, setPreview] = useState("");
+  const [links, setLinks] = useState<{ node: TreeNode; where: string; count: number }[]>([]);
 
   const refresh = async () => {
     if (dir && node?.kind === "doc") setSnaps(await storage.listSnapshots(dir, node.id));
@@ -21,6 +24,32 @@ export function Inspector() {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id, dir]);
+
+  // Liens fiches ↔ scènes : détectés automatiquement par les noms et alias.
+  const notesKey = project ? flatten(project.notes).map((n) => n.id + n.title + n.aliases.join()).join("|") : "";
+  useEffect(() => {
+    if (!project || !dir || !node || node.kind !== "doc") { setLinks([]); return; }
+    let stop = false;
+    const t = setTimeout(async () => {
+      const out: typeof links = [];
+      if (section === "notes") {
+        const names = namesOf(node);
+        for (const sc of flatten(project.manuscript).filter((n) => n.kind === "doc")) {
+          const c = countMentions(await storage.readDoc(dir, sc.id), names);
+          if (c) out.push({ node: sc, where: "Manuscrit", count: c });
+        }
+      } else {
+        const text = await storage.readDoc(dir, node.id);
+        for (const f of flatten(project.notes).filter((n) => n.kind === "doc")) {
+          const c = countMentions(text, namesOf(f));
+          if (c) out.push({ node: f, where: "Fiches", count: c });
+        }
+      }
+      if (!stop) setLinks(out.sort((a, b) => b.count - a.count));
+    }, 500);
+    return () => { stop = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node?.id, node?.words, node?.title, node?.aliases.join(), section, dir, notesKey]);
 
   if (!project || !dir) return null;
   const total = sectionWords(project.manuscript);
@@ -43,6 +72,10 @@ export function Inspector() {
           <span>{total.toLocaleString("fr-FR")} / <input type="number" min={0} step={1000} value={project.goals.total} onChange={(e) => updateProject({ goals: { ...project.goals, total: +e.target.value } })} /></span>
         </div>
         <div className="bar"><div style={{ width: pct(total, project.goals.total) + "%" }} /></div>
+        <div className="goal-line" style={{ marginTop: 4 }}>
+          <span className="muted">Date limite</span>
+          <input type="date" style={{ width: 130 }} value={project.goals.deadline} onChange={(e) => updateProject({ goals: { ...project.goals, deadline: e.target.value } })} />
+        </div>
       </div>
 
       {node ? (
@@ -60,6 +93,46 @@ export function Inspector() {
             {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <p className="muted">{node.words.toLocaleString("fr-FR")} mots</p>
+
+          <label>Étiquettes</label>
+          <LabelPicker ids={node.labels} onChange={(labels) => updateNode(node.id, { labels })} />
+
+          {section === "notes" && node.kind === "doc" && (
+            <>
+              <label>Autres noms (séparés par des virgules)</label>
+              <input
+                defaultValue={node.aliases.join(", ")}
+                key={node.id}
+                placeholder="surnom, titre, nom de famille…"
+                onBlur={(e) => updateNode(node.id, { aliases: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })}
+              />
+            </>
+          )}
+
+          {section === "manuscript" && node.kind === "doc" && (
+            <>
+              <label>Dans l'histoire</label>
+              <div className="two">
+                <input type="date" value={node.date} onChange={(e) => updateNode(node.id, { date: e.target.value })} />
+                <input placeholder="moment (matin, Jour 3…)" value={node.moment} onChange={(e) => updateNode(node.id, { moment: e.target.value })} />
+              </div>
+            </>
+          )}
+
+          {node.kind === "doc" && (
+            <>
+              <h3>{section === "notes" ? "Apparaît dans" : "Présents dans la scène"}</h3>
+              <ul className="links">
+                {links.length === 0 && <li className="muted">{section === "notes" ? "Nom non trouvé dans le manuscrit." : "Aucune fiche détectée."}</li>}
+                {links.map((l) => (
+                  <li key={l.node.id}>
+                    <a onClick={() => useStore.getState().select(l.node.id)}>{l.node.title}</a>
+                    <small>{l.count}×</small>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           {node.kind === "doc" && (
             <>

@@ -4,7 +4,7 @@ export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
 
 export function newNode(kind: TreeNode["kind"], title: string): TreeNode {
-  return { id: uid(), title, kind, synopsis: "", status: "brouillon", words: 0, children: [] };
+  return { id: uid(), title, kind, synopsis: "", status: "brouillon", words: 0, children: [], aliases: [], labels: [], date: "", moment: "" };
 }
 
 export function find(nodes: TreeNode[], id: string): TreeNode | undefined {
@@ -75,3 +75,30 @@ export function sectionWords(nodes: TreeNode[]): number {
 }
 
 export const today = () => new Date().toISOString().slice(0, 10);
+
+export const DEFAULT_LABELS = [
+  { id: "l-retravailler", name: "À retravailler", color: "#d9534f" },
+  { id: "l-flashback", name: "Flashback", color: "#8e6bbf" },
+  { id: "l-secondaire", name: "Intrigue secondaire", color: "#4a90d9" },
+];
+
+/** Complète un projet créé avec une version plus ancienne de Plumier. */
+export function normalizeProject(p: Project): Project {
+  const fix = (n: TreeNode): TreeNode => ({
+    ...n,
+    aliases: n.aliases ?? [],
+    labels: n.labels ?? [],
+    date: n.date ?? "",
+    moment: n.moment ?? "",
+    children: (n.children ?? []).map(fix),
+  });
+  return {
+    ...p,
+    manuscript: p.manuscript.map(fix),
+    notes: p.notes.map(fix),
+    goals: { ...p.goals, deadline: p.goals.deadline ?? "" },
+    labels: p.labels ?? DEFAULT_LABELS,
+    dictionary: p.dictionary ?? [],
+    daily: p.daily ?? {},
+  };
+}
