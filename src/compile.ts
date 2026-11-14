@@ -33,3 +33,25 @@ export async function compileManuscript(dir: string, roots: TreeNode[], opt: Com
   await walk(roots, 1);
   return parts.join("\n");
 }
+
+const unesc = (s: string) => s.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+
+/**
+ * Prépare le Markdown pour l'export :
+ *  - les commentaires de relecture ne sont jamais exportés (le texte commenté est conservé) ;
+ *  - 'pandoc' : les notes de bas de page deviennent des notes Pandoc ^[...] (Word, EPUB, ODT…) ;
+ *  - 'pdf' : les notes restent des <span> traités par la mise en page du PDF.
+ */
+export function finalizeMarkdown(md: string, mode: "pandoc" | "pdf"): string {
+  // Dissoudre les commentaires (on garde le texte), même s'ils entourent une note de bas de page.
+  let depth = 0;
+  md = md.replace(/<span data-comment="[^"]*">|<span data-footnote="[^"]*"><\/span>|<\/span>/g, (tok) => {
+    if (tok.startsWith("<span data-comment")) { depth++; return ""; }
+    if (tok === "</span>") { if (depth > 0) { depth--; return ""; } return tok; }
+    return tok; // note de bas de page : conservée
+  });
+  if (mode === "pandoc") {
+    md = md.replace(/<span data-footnote="([^"]*)"><\/span>/g, (_m, t) => `^[${unesc(t).replace(/\]/g, "\\]")}]`);
+  }
+  return md;
+}

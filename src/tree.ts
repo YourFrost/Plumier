@@ -4,7 +4,7 @@ export const uid = () =>
   Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
 
 export function newNode(kind: TreeNode["kind"], title: string): TreeNode {
-  return { id: uid(), title, kind, synopsis: "", status: "brouillon", words: 0, children: [], aliases: [], labels: [], date: "", moment: "" };
+  return { id: uid(), title, kind, synopsis: "", status: "brouillon", words: 0, children: [], aliases: [], labels: [], date: "", moment: "", pov: "", goal: 0, props: [], relations: [] };
 }
 
 export function find(nodes: TreeNode[], id: string): TreeNode | undefined {
@@ -74,7 +74,7 @@ export function sectionWords(nodes: TreeNode[]): number {
   return nodes.reduce((s, n) => s + totalWords(n), 0);
 }
 
-export const today = () => new Date().toISOString().slice(0, 10);
+export const today = () => dayKey(new Date());
 
 export const DEFAULT_LABELS = [
   { id: "l-retravailler", name: "À retravailler", color: "#d9534f" },
@@ -90,6 +90,10 @@ export function normalizeProject(p: Project): Project {
     labels: n.labels ?? [],
     date: n.date ?? "",
     moment: n.moment ?? "",
+    pov: n.pov ?? "",
+    goal: n.goal ?? 0,
+    props: n.props ?? [],
+    relations: n.relations ?? [],
     children: (n.children ?? []).map(fix),
   });
   return {
@@ -99,6 +103,29 @@ export function normalizeProject(p: Project): Project {
     goals: { ...p.goals, deadline: p.goals.deadline ?? "" },
     labels: p.labels ?? DEFAULT_LABELS,
     dictionary: p.dictionary ?? [],
+    ignoredRepeats: p.ignoredRepeats ?? [],
     daily: p.daily ?? {},
   };
+}
+
+export const dayKey = (d: Date) => {
+  const z = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+};
+
+/** Série de jours consécutifs d'écriture (aujourd'hui compte seulement s'il y a eu de l'écriture). */
+export function streakOf(daily: Record<string, number>): number {
+  let streak = 0;
+  const cur = new Date();
+  if ((daily[dayKey(cur)] ?? 0) === 0) cur.setDate(cur.getDate() - 1);
+  while ((daily[dayKey(cur)] ?? 0) > 0) {
+    streak++;
+    cur.setDate(cur.getDate() - 1);
+  }
+  return streak;
+}
+
+/** Compte approximatif de mots d'un texte Markdown. */
+export function countWords(md: string): number {
+  return (md.replace(/<[^>]+>/g, " ").replace(/[#>*_`~\[\]()|-]+/g, " ").match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) ?? []).length;
 }

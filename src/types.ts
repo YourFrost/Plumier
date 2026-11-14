@@ -25,6 +25,19 @@ export interface TreeNode {
   /** Date dans l'histoire (AAAA-MM-JJ) et moment libre (« matin », « Jour 3 »…) */
   date: string;
   moment: string;
+  /** Point de vue de la scène : id d'une fiche */
+  pov: string;
+  /** Objectif de mots de la scène (0 = aucun) */
+  goal: number;
+  /** Champs libres d'une fiche (Âge, Origine…) */
+  props: { key: string; value: string }[];
+  /** Relations d'une fiche avec d'autres fiches */
+  relations: Relation[];
+}
+
+export interface Relation {
+  target: string; // id de la fiche liée
+  type: string; // Ami, Ennemi, Famille…
 }
 
 export interface Label {
@@ -43,6 +56,8 @@ export interface Project {
   labels: Label[];
   /** Mots acceptés par le correcteur */
   dictionary: string[];
+  /** Mots ignorés par la vérification des répétitions */
+  ignoredRepeats: string[];
   /** mots écrits par jour (clé AAAA-MM-JJ) */
   daily: Record<string, number>;
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { useStore } from "../store";
+import { blocksOf } from "../editorUtils";
 
 /** Serveurs LanguageTool proposés. Le local garde le texte sur le PC. */
 const SERVERS = [
@@ -20,20 +21,7 @@ interface Issue {
   replacements: string[];
 }
 
-interface Block { text: string; pos: number }
-
-function blocksOf(editor: Editor): Block[] {
-  const out: Block[] = [];
-  editor.state.doc.descendants((node, pos) => {
-    if (node.isTextblock) {
-      out.push({ text: node.textBetween(0, node.content.size, "\n", "\n"), pos: pos + 1 });
-      return false;
-    }
-  });
-  return out;
-}
-
-export function ProofPanel({ editor, onClose }: { editor: Editor; onClose: () => void }) {
+export function ProofTab({ editor }: { editor: Editor }) {
   const { project, updateProject, setToast } = useStore();
   const [server, setServer] = useState(() => localStorage.getItem("plumier-lt") ?? "local");
   const [issues, setIssues] = useState<Issue[] | null>(null);
@@ -135,11 +123,7 @@ export function ProofPanel({ editor, onClose }: { editor: Editor; onClose: () =>
   const icon = (t: string) => (t === "misspelling" ? "🔴" : t === "grammar" ? "🟠" : t === "style" ? "🔵" : "🟡");
 
   return (
-    <aside className="proof">
-      <div className="proof-head">
-        <b>Correction</b>
-        <button onClick={onClose} title="Fermer">✕</button>
-      </div>
+    <div className="tab-body">
       <select value={server} onChange={(e) => { setServer(e.target.value); localStorage.setItem("plumier-lt", e.target.value); }}>
         {SERVERS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
@@ -172,6 +156,6 @@ export function ProofPanel({ editor, onClose }: { editor: Editor; onClose: () =>
           ))}
         </details>
       )}
-    </aside>
+    </div>
   );
 }

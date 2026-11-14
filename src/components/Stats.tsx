@@ -1,8 +1,7 @@
 import { useStore } from "../store";
 import { STATUSES, type TreeNode } from "../types";
-import { flatten, sectionWords, today, totalWords } from "../tree";
+import { dayKey, flatten, sectionWords, streakOf, today, totalWords } from "../tree";
 
-const dayKey = (d: Date) => d.toISOString().slice(0, 10);
 const nf = (n: number) => Math.round(n).toLocaleString("fr-FR");
 
 export function Stats() {
@@ -25,11 +24,7 @@ export function Stats() {
   const best = Math.max(0, ...Object.values(daily));
   const avgActive = activeDays ? Object.values(daily).reduce((s, v) => s + v, 0) / activeDays : 0;
 
-  // série en cours (aujourd'hui compte seulement s'il y a eu de l'écriture, sinon on part d'hier)
-  let streak = 0;
-  const cur = new Date();
-  if ((daily[today()] ?? 0) === 0) cur.setDate(cur.getDate() - 1);
-  while ((daily[dayKey(cur)] ?? 0) > 0) { streak++; cur.setDate(cur.getDate() - 1); }
+  const streak = streakOf(daily);
 
   // projection vers la date limite
   const { total: goal, deadline } = project.goals;
