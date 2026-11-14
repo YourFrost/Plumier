@@ -25,12 +25,27 @@ fn run_pandoc(args: Vec<String>) -> Result<String, String> {
     }
 }
 
+/// Redémarre l'application (après l'installation d'une mise à jour).
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+    app.restart();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![run_pandoc])
+        .setup(|app| {
+            // Mises à jour automatiques : le module n'est actif que si la configuration contient une
+            // clé publique (builds de release signés, voir docs/RELEASING.md). Sans clé, l'initialisation
+            // échoue proprement et l'application fonctionne normalement, sans mise à jour.
+            let _ = app
+                .handle()
+                .plugin(tauri_plugin_updater::Builder::new().build());
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![run_pandoc, restart_app])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de Plumier");
 }

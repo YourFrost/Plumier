@@ -6,6 +6,9 @@ import { Corkboard } from "./components/Corkboard";
 import { Outline } from "./components/Outline";
 import { Timeline } from "./components/Timeline";
 import { Stats } from "./components/Stats";
+import { Matrix } from "./components/Matrix";
+import { Relations } from "./components/Relations";
+import { TemplatesDialog } from "./components/TemplatesDialog";
 import { Inspector } from "./components/Inspector";
 import { Welcome } from "./components/Welcome";
 import { ExportDialog } from "./components/ExportDialog";
@@ -115,8 +118,8 @@ export function App() {
           {view === "corkboard" && <Corkboard />}
           {view === "outline" && <Outline />}
           {view === "timeline" && <Timeline />}
-          {view === "matrix" && <Placeholder name="Présence" />}
-          {view === "relations" && <Placeholder name="Relations" />}
+          {view === "matrix" && <Matrix />}
+          {view === "relations" && <Relations />}
           {view === "stats" && <Stats />}
         </main>
         {!focus && s.showInspector && <Inspector />}
@@ -128,13 +131,10 @@ export function App() {
       {modal === "quickopen" && <Palette mode="quickopen" />}
       {modal === "settings" && <SettingsDialog />}
       {modal === "import" && <ImportDialog />}
+      {modal === "templates" && <TemplatesDialog />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
-}
-
-function Placeholder({ name }: { name: string }) {
-  return <div className="placeholder-page"><p>{name} : bientôt.</p></div>;
 }
 
 void COMMANDS;

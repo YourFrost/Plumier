@@ -1,0 +1,42 @@
+name: Release Windows
+# Publie une version signée avec mise à jour automatique : git tag v0.2.0 && git push origin v0.2.0
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with: { workspaces: "src-tauri" }
+      - run: npm ci
+      - name: Configurer la version et la clé de mise à jour
+        shell: pwsh
+        env:
+          PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if (-not $env:PUBKEY) { throw "Le secret TAURI_UPDATER_PUBKEY est absent (voir docs/RELEASING.md)." }
+          $c = Get-Content src-tauri/tauri.release.conf.json -Raw | ConvertFrom-Json
+          $c.plugins.updater.pubkey = $env:PUBKEY
+          $c | Add-Member -NotePropertyName version -NotePropertyValue ($env:TAG -replace '^v','') -Force
+          $c | ConvertTo-Json -Depth 10 | Set-Content src-tauri/tauri.release.conf.json
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Plumier ${{ github.ref_name }}"
+          releaseBody: "Voir l'historique des modifications dans le dépôt."
+          releaseDraft: false
+          prerelease: false
+          uploadUpdaterJson: true
+          args: --config src-tauri/tauri.release.conf.json

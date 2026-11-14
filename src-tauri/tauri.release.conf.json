@@ -1,0 +1,10 @@
+{
+  "bundle": { "createUpdaterArtifacts": true },
+  "plugins": {
+    "updater": {
+      "pubkey": "REMPLACÉ_PAR_LE_WORKFLOW",
+      "endpoints": ["https://github.com/YourFrost/Plumier/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

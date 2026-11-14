@@ -81,7 +81,13 @@ export function Binder() {
             e.preventDefault();
             onDrop();
           }}
-          onClick={() => (n.kind === "doc" ? select(n.id) : toggle(n.id))}
+          onClick={() => {
+            if (n.kind === "doc") return select(n.id);
+            // dossier : un clic le sélectionne (cible des ajouts) et le déplie ; un clic de plus le replie
+            if (!open) { toggle(n.id); select(n.id); }
+            else if (selectedId === n.id) toggle(n.id);
+            else select(n.id);
+          }}
           onDoubleClick={() => setEditing(n.id)}
         >
           <span className="twisty" onClick={(e) => { e.stopPropagation(); if (n.kind === "folder") toggle(n.id); }}>

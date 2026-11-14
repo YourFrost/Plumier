@@ -1,4 +1,5 @@
 import { useStore } from "../store";
+import { usePresence } from "../analysis";
 import { STATUSES, type TreeNode } from "../types";
 import { dayKey, flatten, sectionWords, streakOf, today, totalWords } from "../tree";
 
@@ -6,6 +7,8 @@ const nf = (n: number) => Math.round(n).toLocaleString("fr-FR");
 
 export function Stats() {
   const project = useStore((s) => s.project);
+  const pres = usePresence();
+  const { select, setView } = useStore();
   if (!project) return null;
 
   const total = sectionWords(project.manuscript);
@@ -106,6 +109,42 @@ export function Stats() {
           ))}
         </div>
       </div>
+
+      {/* Mots par point de vue */}
+      {(() => {
+        const byPov = new Map<string, number>();
+        scenes.forEach((n) => { if (n.pov) byPov.set(n.pov, (byPov.get(n.pov) ?? 0) + n.words); });
+        if (!byPov.size) return null;
+        const max = Math.max(...byPov.values());
+        const nameOf = (id: string) => pres.fiches.find((f) => f.node.id === id)?.node.title ?? "(fiche supprimée)";
+        return (
+          <>
+            <h3>Mots par point de vue</h3>
+            {[...byPov.entries()].sort((a, b) => b[1] - a[1]).map(([id, w]) => (
+              <div key={id} className="hbar"><span>{nameOf(id)}</span><div><i style={{ width: (w / max) * 100 + "%" }} /></div><b>{nf(w)}</b></div>
+            ))}
+          </>
+        );
+      })()}
+
+      {/* Santé du manuscrit */}
+      <h3>Santé du manuscrit</h3>
+      {(() => {
+        const open = (id: string) => { select(id); setView("editor"); };
+        const checks: { label: string; items: { id: string; title: string }[] }[] = [];
+        checks.push({ label: "Scènes vides", items: scenes.filter((n) => n.words === 0).map((n) => ({ id: n.id, title: n.title })) });
+        if (scenes.some((n) => n.synopsis)) checks.push({ label: "Scènes sans résumé", items: scenes.filter((n) => !n.synopsis.trim()).map((n) => ({ id: n.id, title: n.title })) });
+        if (scenes.some((n) => n.date)) checks.push({ label: "Scènes sans date (alors que d'autres en ont une)", items: scenes.filter((n) => !n.date).map((n) => ({ id: n.id, title: n.title })) });
+        if (scenes.some((n) => n.pov)) checks.push({ label: "Scènes sans point de vue", items: scenes.filter((n) => !n.pov).map((n) => ({ id: n.id, title: n.title })) });
+        checks.push({ label: "Scènes sous leur objectif de mots", items: scenes.filter((n) => n.goal > 0 && n.words < n.goal).map((n) => ({ id: n.id, title: `${n.title} (${n.words}/${n.goal})` })) });
+        if (pres.ready) checks.push({ label: "Fiches jamais citées dans le manuscrit", items: pres.fiches.filter((f) => (pres.counts.get(f.node.id)?.size ?? 0) === 0).map((f) => ({ id: f.node.id, title: f.node.title })) });
+        return checks.map((c) => (
+          <details key={c.label} className={`health ${c.items.length ? "warn" : "ok"}`}>
+            <summary><span>{c.items.length ? "⚠" : "✓"}</span> {c.label} <b>{c.items.length || ""}</b></summary>
+            {c.items.slice(0, 40).map((it) => <a key={it.id} onClick={() => open(it.id)}>{it.title}</a>)}
+          </details>
+        ));
+      })()}
     </div>
   );
 }

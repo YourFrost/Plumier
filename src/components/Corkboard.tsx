@@ -5,7 +5,7 @@ import { find, findParent, totalWords } from "../tree";
 import { LabelChips } from "./Labels";
 
 export function Corkboard() {
-  const { project, section, selectedId, select, setView, addNode, moveNode, updateNode } = useStore();
+  const { project, section, selectedId, select, setView, addNode, moveNode, updateNode, setModal } = useStore();
   const [scopeId, setScopeId] = useState<string | null>(() => {
     // on ouvre le tableau sur le dossier de la scène en cours
     const st = useStore.getState();
@@ -57,6 +57,7 @@ export function Corkboard() {
           <option value="">Toutes les étiquettes</option>
           {project.labels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
+        {section === "manuscript" && <button onClick={() => setModal("templates")} title="Pré-remplir le plan avec une structure (trois actes, voyage du héros…)">📐 Modèles</button>}
         <button onClick={() => addNode("doc", effectiveScope?.id ?? null)}>＋ {section === "manuscript" ? "Scène" : "Fiche"}</button>
         <button onClick={() => addNode("folder", effectiveScope?.id ?? null)}>＋ Dossier</button>
       </div>

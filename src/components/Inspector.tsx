@@ -4,6 +4,8 @@ import { storage } from "../storage";
 import { STATUSES, type SnapshotInfo, type Status, type TreeNode } from "../types";
 import { flushEditor, RELOAD_EVENT } from "./Editor";
 import { flatten, sectionWords, today } from "../tree";
+import { ficheList } from "../analysis";
+import { PROP_TEMPLATES, RELATION_TYPES } from "../structures";
 import { countMentions, namesOf } from "../mentions";
 import { LabelPicker } from "./Labels";
 
@@ -97,6 +99,18 @@ export function Inspector() {
           <label>Étiquettes</label>
           <LabelPicker ids={node.labels} onChange={(labels) => updateNode(node.id, { labels })} />
 
+          {section === "manuscript" && node.kind === "doc" && (
+            <>
+              <label>Point de vue</label>
+              <select value={node.pov} onChange={(e) => updateNode(node.id, { pov: e.target.value })}>
+                <option value="">— non défini —</option>
+                {ficheList(project.notes).map((f) => <option key={f.node.id} value={f.node.id}>{f.node.title}</option>)}
+              </select>
+              <label>Objectif de mots pour la scène</label>
+              <input type="number" min={0} step={100} value={node.goal || ""} placeholder="aucun" onChange={(e) => updateNode(node.id, { goal: Math.max(0, +e.target.value || 0) })} />
+            </>
+          )}
+
           {section === "notes" && node.kind === "doc" && (
             <>
               <label>Autres noms (séparés par des virgules)</label>
@@ -106,6 +120,13 @@ export function Inspector() {
                 placeholder="surnom, titre, nom de famille…"
                 onBlur={(e) => updateNode(node.id, { aliases: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })}
               />
+            </>
+          )}
+
+          {section === "notes" && node.kind === "doc" && (
+            <>
+              <PropsEditor node={node} />
+              <RelationsEditor node={node} />
             </>
           )}
 
@@ -189,5 +210,56 @@ export function Inspector() {
         <p className="muted">Sélectionne un élément pour voir ses détails.</p>
       )}
     </aside>
+  );
+}
+
+
+/* Champs libres d'une fiche (Âge, Origine…), avec modèles par catégorie. */
+function PropsEditor({ node }: { node: TreeNode }) {
+  const { project, updateNode } = useStore();
+  if (!project) return null;
+  const cat = ficheList(project.notes).find((f) => f.node.id === node.id)?.category ?? "";
+  const tpl = PROP_TEMPLATES.find((t) => t.match.test(cat));
+  const set = (props: TreeNode["props"]) => updateNode(node.id, { props });
+  return (
+    <>
+      <h3>Champs</h3>
+      {node.props.map((p, i) => (
+        <div key={i} className="prop-row">
+          <input className="k" value={p.key} placeholder="Champ" onChange={(e) => set(node.props.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))} />
+          <input value={p.value} placeholder="Valeur" onChange={(e) => set(node.props.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} />
+          <button title="Supprimer" onClick={() => set(node.props.filter((_, j) => j !== i))}>×</button>
+        </div>
+      ))}
+      <div className="two">
+        <button onClick={() => set([...node.props, { key: "", value: "" }])}>＋ Champ</button>
+        {tpl && node.props.length === 0 && <button onClick={() => set(tpl.keys.map((key) => ({ key, value: "" })))}>Modèle « {tpl.label} »</button>}
+      </div>
+    </>
+  );
+}
+
+/* Relations de la fiche avec d'autres fiches (alimentent la vue Relations). */
+function RelationsEditor({ node }: { node: TreeNode }) {
+  const { project, updateNode } = useStore();
+  if (!project) return null;
+  const others = ficheList(project.notes).filter((f) => f.node.id !== node.id);
+  const set = (relations: TreeNode["relations"]) => updateNode(node.id, { relations });
+  return (
+    <>
+      <h3>Relations</h3>
+      <datalist id="rel-types-i">{RELATION_TYPES.map((t) => <option key={t} value={t} />)}</datalist>
+      {node.relations.map((r, i) => (
+        <div key={i} className="prop-row">
+          <input className="k" list="rel-types-i" value={r.type} onChange={(e) => set(node.relations.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)))} />
+          <select value={r.target} onChange={(e) => set(node.relations.map((x, j) => (j === i ? { ...x, target: e.target.value } : x)))}>
+            {others.map((f) => <option key={f.node.id} value={f.node.id}>{f.node.title}</option>)}
+            {!others.some((f) => f.node.id === r.target) && <option value={r.target}>(fiche supprimée)</option>}
+          </select>
+          <button title="Supprimer" onClick={() => set(node.relations.filter((_, j) => j !== i))}>×</button>
+        </div>
+      ))}
+      <button disabled={others.length === 0} onClick={() => set([...node.relations, { type: "Ami", target: others[0].node.id }])}>＋ Relation</button>
+    </>
   );
 }
